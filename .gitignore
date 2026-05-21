@@ -1,0 +1,26 @@
+# .gitignore
+ 
+# SECRETS — never commit these
+.env
+.env.*
+!.env.example
+ 
+# Garmin tokens (contain credentials)
+.garminconnect/
+garmin_tokens.json
+ 
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+*.egg-info/
+ 
+# Testing
+.pytest_cache/
+.coverage
+ 
+# Editors
+.vscode/
+.idea/
+.DS_Store
