@@ -1,6 +1,6 @@
 import os, logging, asyncio
 from datetime import date
-from garminconnect import Garmin
+from garminconnect import Garmin, GarminConnectTooManyRequestsError
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
@@ -33,7 +33,11 @@ async def get_client() -> Garmin:
     loop = asyncio.get_event_loop()
     return await loop.run_in_executor(None, _get_client_sync)
 
-async def fetch_daily_metrics(target_date: date) -> dict:
+async def fetch_daily_metrics(
+    target_date: date,
+    max_attempts: int = 5,
+    base_delay: float = 1.0,
+) -> dict:
     client = await get_client()
     date_str = target_date.isoformat()
     loop = asyncio.get_event_loop()
@@ -47,4 +51,17 @@ async def fetch_daily_metrics(target_date: date) -> dict:
             'steps': client.get_stats(date_str).get('totalSteps'),
         }
 
-    return await loop.run_in_executor(None, _fetch)
+    delay = base_delay
+    for attempt in range(1, max_attempts + 1):
+        try:
+            return await loop.run_in_executor(None, _fetch)
+        except GarminConnectTooManyRequestsError:
+            if attempt < max_attempts:
+                logger.warning(
+                    "Garmin rate limited on attempt %d/%d. Retrying in %.1fs...",
+                    attempt, max_attempts, delay,
+                )
+                await asyncio.sleep(delay)
+                delay *= 2
+            else:
+                raise

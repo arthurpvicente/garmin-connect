@@ -6,6 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import settings
 from app.core.security import decrypt_token, encrypt_token
+from app.core.retry import with_retry
 from app.models.token import OAuthToken
 
 logger = logging.getLogger(__name__)
@@ -74,15 +75,24 @@ class StravaClient:
             return await self._refresh(token)
         return decrypt_token(token.access_token)
 
-    async def get_activities(self, limit: int = 30) -> list[dict]:
+    @with_retry(max_attempts=5, base_delay=1.0)
+    async def get_activities(self, limit: int = 100) -> list[dict]:
         access_token = await self._get_valid_access_token()
+        all_activities: list[dict] = []
+        page = 1
         async with httpx.AsyncClient() as client:
-            resp = await client.get(
-                f"{STRAVA_API_BASE}/athlete/activities",
-                headers={"Authorization": f"Bearer {access_token}"},
-                params={"per_page": limit},
-            )
-        if resp.status_code == 401:
-            raise HTTPException(status_code=401, detail="Strava rejected the access token")
-        resp.raise_for_status()
-        return resp.json()
+            while True:
+                resp = await client.get(
+                    f"{STRAVA_API_BASE}/athlete/activities",
+                    headers={"Authorization": f"Bearer {access_token}"},
+                    params={"per_page": limit, "page": page},
+                )
+                if resp.status_code == 401:
+                    raise HTTPException(status_code=401, detail="Strava rejected the access token")
+                resp.raise_for_status()
+                batch = resp.json()
+                if not batch:
+                    break
+                all_activities.extend(batch)
+                page += 1
+        return all_activities
