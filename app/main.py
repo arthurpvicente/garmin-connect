@@ -7,6 +7,9 @@ from sqlalchemy import text
 from app.core.config import settings
 from app.core.database import AsyncSessionFactory, create_tables
 import app.models  # ensures models are registered
+from app.api.auth import router as auth_router
+from app.api.sync import router as sync_router
+from app.tasks.scheduler import start_scheduler, stop_scheduler
  
 logging.basicConfig(
     level=getattr(logging, settings.log_level.upper(), logging.INFO),
@@ -19,9 +22,11 @@ async def lifespan(app: FastAPI):
     logger.info("Starting Fitness Sync API...")
     if settings.debug:
         await create_tables()
+    start_scheduler()
     logger.info("API ready")
     yield
     logger.info("Shutting down...")
+    stop_scheduler()
  
 app = FastAPI(
     title="Fitness Sync API",
@@ -36,7 +41,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
- 
+
+app.include_router(auth_router)
+app.include_router(sync_router)
+
 @app.get("/health")
 async def health_check():
     db_ok = False
