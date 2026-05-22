@@ -1,14 +1,15 @@
 from datetime import datetime, timezone
+from urllib.parse import urlencode
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import RedirectResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
 from app.core.config import settings
-from app.core.security import encrypt_token
+from app.core.security import encrypt_token, generate_oauth_state, verify_oauth_state
 from app.models.token import OAuthToken
 from app.models.user import User
-import httpx, secrets
+import httpx
 
 router = APIRouter(prefix='/auth', tags=['auth'])
 
@@ -17,21 +18,27 @@ STRAVA_TOKEN_URL = 'https://www.strava.com/oauth/token'
 
 @router.get('/strava/login')
 async def strava_login():
+    state = generate_oauth_state()
     params = {
         'client_id': settings.strava_client_id,
         'redirect_uri': settings.strava_redirect_uri,
         'response_type': 'code',
-        'scope': 'read,activity:read_all,profile:read_all',
+        'scope': 'read,activity:read_all',
+        'state': state,
     }
-    url = STRAVA_AUTH_URL + '?' + '&'.join(f'{k}={v}' for k, v in params.items())
+    url = STRAVA_AUTH_URL + '?' + urlencode(params)
     return RedirectResponse(url=url)
 
 @router.get('/callback')
 async def strava_callback(
     code: str,
+    state: str,
     scope: str = '',
     db: AsyncSession = Depends(get_db),
 ):
+    if not verify_oauth_state(state):
+        raise HTTPException(status_code=400, detail='Invalid or expired OAuth state')
+
     async with httpx.AsyncClient() as client:
         resp = await client.post(STRAVA_TOKEN_URL, data={
             'client_id': settings.strava_client_id,

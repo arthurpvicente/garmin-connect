@@ -23,3 +23,30 @@ def decrypt_token(encrypted_text: str) -> str:
             "Token decryption failed — ciphertext may be corrupted or key changed. "
             "User must re-authenticate."
         ) from e
+
+import secrets
+import time
+
+# In-memory store: { state_token: expiry_unix_timestamp }
+_oauth_states: dict[str, float] = {}
+STATE_TTL_SECONDS = 300  # 5 minutes
+
+
+def generate_oauth_state() -> str:
+    """Generate a secure random token and store it with a TTL."""
+    state = secrets.token_urlsafe(32)
+    _oauth_states[state] = time.time() + STATE_TTL_SECONDS
+    return state
+
+
+def verify_oauth_state(state: str) -> bool:
+    """
+    Verify the state token exists and has not expired.
+    Uses pop() so the token is deleted after first use (one-time-use).
+    """
+    expiry = _oauth_states.pop(state, None)  # deletes on read
+    if expiry is None:
+        return False  # was never issued
+    if time.time() > expiry:
+        return False  # expired
+    return True
