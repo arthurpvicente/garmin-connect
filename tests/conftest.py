@@ -4,16 +4,21 @@ from httpx import AsyncClient, ASGITransport
 from app.main import app
 from app.core.database import Base, engine
  
-@pytest_asyncio.fixture(scope='session', autouse=True)
+@pytest_asyncio.fixture(scope='session', loop_scope='session', autouse=True)
 async def setup_test_db():
     try:
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
-        yield
+    except Exception:
+        pass  # no DB — let unit tests still run
+
+    yield
+
+    try:
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.drop_all)
     except Exception:
-        yield  # let non-DB tests run even if DB is down
+        pass
  
 @pytest_asyncio.fixture
 async def client():
