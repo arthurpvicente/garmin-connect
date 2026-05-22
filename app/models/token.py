@@ -1,17 +1,21 @@
 import uuid
 from datetime import datetime, timezone, timedelta
-from sqlalchemy import DateTime, ForeignKey, String, Text, func
+from sqlalchemy import DateTime, ForeignKey, String, Text, UniqueConstraint, func
 from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.orm import Mapped, mapped_column
 from app.core.database import Base
  
 class OAuthToken(Base):
     __tablename__ = "oauth_tokens"
- 
+    __table_args__ = (
+        UniqueConstraint("user_id", "provider", name="uq_oauth_tokens_user_provider"),
+    )
+
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
     user_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("users.id", ondelete="CASCADE"), unique=True, index=True,
+        ForeignKey("users.id", ondelete="CASCADE"), index=True,
     )
+    provider: Mapped[str] = mapped_column(String(20), index=True)
     # ENCRYPTED — never store plain tokens
     access_token: Mapped[str] = mapped_column(Text)
     refresh_token: Mapped[str] = mapped_column(Text)
