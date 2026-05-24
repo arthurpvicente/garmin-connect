@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime
-from sqlalchemy import BigInteger, DateTime, String, func
+from sqlalchemy import BigInteger, DateTime, Integer, String, func
 from sqlalchemy.orm import Mapped, mapped_column
 from app.core.database import Base
  
@@ -18,3 +18,4 @@ class User(Base):
     last_synced_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True,
     )
+    max_hr: Mapped[int | None] = mapped_column(Integer, nullable=True)
