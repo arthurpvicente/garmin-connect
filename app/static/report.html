@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Weekly Report — Fitness Sync</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/styles.css" />
+  <style>
+    body { max-width: 860px; margin: 0 auto; padding: 32px 24px 64px; }
+
+    .page-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 36px; padding-bottom: 20px; border-bottom: 1px solid var(--line);
+    }
+    .page-header h1 {
+      font-family: var(--font-display); font-weight: 700;
+      font-size: 28px; letter-spacing: -0.03em; margin: 0;
+    }
+    .week-nav { display: flex; align-items: center; gap: 12px; }
+    .week-nav button {
+      background: var(--surface-1); border: 1px solid var(--line);
+      color: var(--text); padding: 6px 12px; border-radius: 6px;
+      font-family: var(--font-mono); font-size: 12px; cursor: pointer;
+    }
+    .week-nav button:hover { background: var(--surface-2); }
+    .week-nav button:disabled { opacity: 0.3; cursor: default; }
+    .week-label {
+      font-family: var(--font-mono); font-size: 12px; color: var(--text-dim);
+      min-width: 180px; text-align: center;
+    }
+
+    .grid-2x2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+    @media (max-width: 600px) { .grid-2x2 { grid-template-columns: 1fr; } }
+
+    .report-card { background: var(--surface-1); border: 1px solid var(--line); border-radius: var(--r-lg); padding: 24px; }
+    .card-icon { font-size: 22px; margin-bottom: 12px; }
+    .card-title {
+      font-family: var(--font-mono); font-size: 10px; text-transform: uppercase;
+      letter-spacing: 0.14em; color: var(--text-mute); margin-bottom: 16px;
+    }
+
+    .stat-row { display: flex; justify-content: space-between; align-items: baseline; padding: 8px 0; border-top: 1px solid var(--line); }
+    .stat-row:first-of-type { border-top: none; padding-top: 0; }
+    .stat-key { font-size: 13px; color: var(--text-dim); }
+    .stat-val { font-family: var(--font-display); font-weight: 700; font-size: 18px; letter-spacing: -0.025em; }
+    .stat-unit { font-family: var(--font-mono); font-size: 11px; color: var(--text-mute); margin-left: 3px; font-weight: 400; }
+
+    .big-number {
+      font-family: var(--font-display); font-weight: 700;
+      font-size: 56px; letter-spacing: -0.04em; line-height: 1;
+      color: var(--primary); margin-bottom: 4px;
+    }
+    .big-unit { font-family: var(--font-mono); font-size: 14px; color: var(--text-mute); margin-left: 4px; font-weight: 400; }
+
+    .summary-row {
+      background: var(--surface-1); border: 1px solid var(--line); border-radius: var(--r-lg);
+      display: grid; grid-template-columns: repeat(4, 1fr);
+    }
+    .summary-cell { padding: 20px 22px; border-right: 1px solid var(--line); }
+    .summary-cell:last-child { border-right: none; }
+    @media (max-width: 600px) { .summary-row { grid-template-columns: 1fr 1fr; } .summary-cell:nth-child(2) { border-right: none; } }
+
+    .no-data { color: var(--text-mute); font-family: var(--font-mono); font-size: 12px; padding: 8px 0; }
+
+    .hrv-pills { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+    .hrv-pill {
+      font-family: var(--font-mono); font-size: 10px; text-transform: uppercase;
+      letter-spacing: 0.1em; padding: 4px 10px; border-radius: 20px;
+      border: 1px solid var(--line);
+    }
+    .hrv-pill.balanced { color: var(--tertiary); border-color: rgba(0,229,160,0.3); background: rgba(0,229,160,0.07); }
+    .hrv-pill.strained { color: var(--warn); border-color: rgba(255,193,7,0.3); background: rgba(255,193,7,0.07); }
+    .hrv-pill.poor, .hrv-pill.compromised { color: var(--primary); border-color: rgba(255,68,35,0.3); background: rgba(255,68,35,0.07); }
+
+    .loading { text-align: center; padding: 80px 0; font-family: var(--font-mono); font-size: 12px; color: var(--text-mute); letter-spacing: 0.12em; text-transform: uppercase; }
+    .error-msg { background: rgba(255,68,35,0.1); border: 1px solid rgba(255,68,35,0.3); border-radius: 8px; padding: 16px 20px; color: var(--primary); font-size: 13px; margin-top: 24px; }
+    .connect-hint { font-family: var(--font-mono); font-size: 11px; color: var(--text-mute); margin-top: 8px; }
+
+    .no-garmin { font-family: var(--font-mono); font-size: 11px; color: var(--text-mute); margin-top: 8px; line-height: 1.6; }
+  </style>
+</head>
+<body>
+
+<div class="page-header">
+  <div>
+    <div style="font-family:var(--font-mono);font-size:10px;color:var(--text-mute);text-transform:uppercase;letter-spacing:0.12em;margin-bottom:6px">Fitness Sync</div>
+    <h1>Weekly Report</h1>
+  </div>
+  <div class="week-nav">
+    <button id="btn-prev">◀ Prev</button>
+    <div class="week-label" id="week-label">Loading…</div>
+    <button id="btn-next" disabled>Next ▶</button>
+    <button id="btn-pdf" disabled style="background:var(--primary);border-color:var(--primary);color:#0A0908;font-weight:600">↓ PDF</button>
+    <button id="btn-wa" disabled style="background:#25D366;border-color:#25D366;color:#fff;font-weight:600">✈ WhatsApp</button>
+  </div>
+</div>
+
+<div id="content"><div class="loading">Loading your week…</div></div>
+
+<script>
+let weekOffset = 0;
+let userId = null;
+
+async function init() {
+  try {
+    const me = await fetch('/auth/me').then(r => r.json());
+    if (me.detail) throw new Error(me.detail);
+    userId = me.id;
+    await loadWeek();
+  } catch (e) {
+    document.getElementById('content').innerHTML = `
+      <div class="error-msg">
+        <strong>Not connected yet.</strong><br>
+        <span class="connect-hint">Visit <a href="/auth/strava/login" style="color:var(--primary)">Strava login</a> to connect your account first.</span>
+      </div>`;
+    document.getElementById('week-label').textContent = '—';
+  }
+}
+
+async function loadWeek() {
+  document.getElementById('content').innerHTML = '<div class="loading">Loading…</div>';
+  document.getElementById('btn-prev').disabled = true;
+  document.getElementById('btn-next').disabled = true;
+
+  const r = await fetch(`/analytics/weekly-report?user_id=${userId}&week_offset=${weekOffset}`);
+  const d = await r.json();
+
+  document.getElementById('week-label').textContent = d.week_label;
+  document.getElementById('btn-prev').disabled = false;
+  document.getElementById('btn-next').disabled = weekOffset >= 0;
+  document.getElementById('btn-pdf').disabled = false;
+  document.getElementById('btn-wa').disabled = false;
+
+  document.getElementById('content').innerHTML = render(d);
+}
+
+function val(v, unit = '', fallback = '—') {
+  if (v === null || v === undefined) return `<span style="color:var(--text-mute)">${fallback}</span>`;
+  return `${v}<span class="stat-unit">${unit}</span>`;
+}
+
+function renderHRV(breakdown) {
+  if (!breakdown || Object.keys(breakdown).length === 0) return '';
+  return '<div class="hrv-pills">' +
+    Object.entries(breakdown).map(([k, v]) =>
+      `<span class="hrv-pill ${k.toLowerCase()}">${v}× ${k}</span>`
+    ).join('') +
+    '</div>';
+}
+
+function render(d) {
+  const r = d.running, g = d.gym, s = d.sleep, rec = d.recovery, t = d.totals;
+  const noGarmin = (s.nights_tracked === 0 && rec.days_tracked === 0)
+    ? '<p class="no-garmin">No Garmin data this week. Sleep + HRV data appears once Garmin is connected and activities are synced.</p>'
+    : '';
+
+  return `
+    <div class="grid-2x2">
+
+      <!-- Running -->
+      <div class="report-card">
+        <div class="card-icon">🏃</div>
+        <div class="card-title">Running</div>
+        ${r.sessions === 0 ? '<p class="no-data">No runs this week.</p>' : `
+          <div class="big-number">${r.total_km}<span class="big-unit">km</span></div>
+          <div style="font-family:var(--font-mono);font-size:11px;color:var(--text-mute);margin-bottom:16px">${r.sessions} session${r.sessions !== 1 ? 's' : ''}</div>
+          <div class="stat-row"><span class="stat-key">Avg pace</span><span class="stat-val">${r.avg_pace_fmt || '—'}</span></div>
+          <div class="stat-row"><span class="stat-key">Elevation</span><span class="stat-val">${val(r.total_elevation_m, ' m')}</span></div>
+          <div class="stat-row"><span class="stat-key">Longest run</span><span class="stat-val">${val(r.longest_km, ' km')}</span></div>
+        `}
+      </div>
+
+      <!-- Gym -->
+      <div class="report-card">
+        <div class="card-icon">🏋</div>
+        <div class="card-title">Gym & Strength</div>
+        ${g.sessions === 0 ? '<p class="no-data">No gym sessions this week.</p>' : `
+          <div class="big-number">${g.sessions}<span class="big-unit">session${g.sessions !== 1 ? 's' : ''}</span></div>
+          <div style="font-family:var(--font-mono);font-size:11px;color:var(--text-mute);margin-bottom:16px">strength training</div>
+          <div class="stat-row"><span class="stat-key">Total time</span><span class="stat-val">${val(g.total_duration_min, ' min')}</span></div>
+        `}
+      </div>
+
+      <!-- Sleep -->
+      <div class="report-card">
+        <div class="card-icon">😴</div>
+        <div class="card-title">Sleep Quality</div>
+        ${s.nights_tracked === 0 ? `<p class="no-data">No sleep data.</p>${noGarmin}` : `
+          <div class="big-number" style="color:${s.avg_score >= 75 ? 'var(--tertiary)' : s.avg_score >= 55 ? 'var(--warn)' : 'var(--primary)'}">
+            ${s.avg_score}<span class="big-unit">/ 100</span>
+          </div>
+          <div style="font-family:var(--font-mono);font-size:11px;color:var(--text-mute);margin-bottom:16px">avg Garmin sleep score</div>
+          <div class="stat-row"><span class="stat-key">Nights tracked</span><span class="stat-val">${s.nights_tracked}</span></div>
+        `}
+      </div>
+
+      <!-- Recovery -->
+      <div class="report-card">
+        <div class="card-icon">💚</div>
+        <div class="card-title">Recovery & HRV</div>
+        ${rec.days_tracked === 0 ? `<p class="no-data">No recovery data.</p>${noGarmin}` : `
+          <div class="big-number" style="color:${rec.avg_body_battery >= 70 ? 'var(--tertiary)' : rec.avg_body_battery >= 40 ? 'var(--warn)' : 'var(--primary)'}">
+            ${rec.avg_body_battery ?? '—'}<span class="big-unit">/ 100</span>
+          </div>
+          <div style="font-family:var(--font-mono);font-size:11px;color:var(--text-mute);margin-bottom:12px">avg body battery at workout start</div>
+          ${renderHRV(rec.hrv_breakdown)}
+        `}
+      </div>
+    </div>
+
+    <!-- Summary bar -->
+    <div class="summary-row">
+      <div class="summary-cell">
+        <div class="label">Active days</div>
+        <div class="numeric" style="font-size:28px;margin-top:8px">${t.active_days}<span style="font-family:var(--font-mono);font-size:11px;color:var(--text-mute);margin-left:4px">/ 7</span></div>
+      </div>
+      <div class="summary-cell">
+        <div class="label">Activities</div>
+        <div class="numeric" style="font-size:28px;margin-top:8px">${t.total_activities}</div>
+      </div>
+      <div class="summary-cell">
+        <div class="label">Calories</div>
+        <div class="numeric" style="font-size:28px;margin-top:8px">${t.total_calories.toLocaleString()}<span style="font-family:var(--font-mono);font-size:11px;color:var(--text-mute);margin-left:4px">kcal</span></div>
+      </div>
+      <div class="summary-cell">
+        <div class="label">Total time</div>
+        <div class="numeric" style="font-size:28px;margin-top:8px">${t.total_duration_min}<span style="font-family:var(--font-mono);font-size:11px;color:var(--text-mute);margin-left:4px">min</span></div>
+      </div>
+    </div>
+  `;
+}
+
+document.getElementById('btn-prev').addEventListener('click', () => { weekOffset--; loadWeek(); });
+document.getElementById('btn-next').addEventListener('click', () => { if (weekOffset < 0) { weekOffset++; loadWeek(); } });
+document.getElementById('btn-pdf').addEventListener('click', () => {
+  if (!userId) return;
+  window.location.href = `/report/pdf?user_id=${userId}&week_offset=${weekOffset}`;
+});
+
+document.getElementById('btn-wa').addEventListener('click', async () => {
+  if (!userId) return;
+  const btn = document.getElementById('btn-wa');
+  btn.disabled = true;
+  btn.textContent = 'Sending…';
+  try {
+    const r = await fetch(`/report/whatsapp?user_id=${userId}&week_offset=${weekOffset}`, { method: 'POST' });
+    const j = await r.json();
+    if (j.status === 'sent') {
+      btn.textContent = '✓ Sent';
+      setTimeout(() => { btn.textContent = '✈ WhatsApp'; btn.disabled = false; }, 2000);
+    } else {
+      btn.textContent = '✗ Failed';
+      alert('WhatsApp send failed. Check Twilio settings in .env (account SID, auth token, from, to).');
+      setTimeout(() => { btn.textContent = '✈ WhatsApp'; btn.disabled = false; }, 2000);
+    }
+  } catch (e) {
+    btn.textContent = '✗ Failed';
+    setTimeout(() => { btn.textContent = '✈ WhatsApp'; btn.disabled = false; }, 2000);
+  }
+});
+
+init();
+</script>
+</body>
+</html>
