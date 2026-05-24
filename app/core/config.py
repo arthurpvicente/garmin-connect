@@ -15,12 +15,18 @@ class Settings(BaseSettings):
     # Database
     database_url: str
  
-    # Redis
-    redis_url: str = "redis://localhost:6379/0"
+    # Redis (optional — cache only; app runs fine without it)
+    redis_url: str = ""
  
     # Encryption key — required, no default
     token_encryption_key: str
  
+    # Twilio WhatsApp (optional)
+    twilio_account_sid: str = ""
+    twilio_auth_token: str = ""
+    twilio_whatsapp_from: str = ""
+    twilio_whatsapp_to: str = ""
+
     # App
     debug: bool = False
     log_level: str = "INFO"
