@@ -80,6 +80,52 @@
     .connect-hint { font-family: var(--font-mono); font-size: 11px; color: var(--text-mute); margin-top: 8px; }
 
     .no-garmin { font-family: var(--font-mono); font-size: 11px; color: var(--text-mute); margin-top: 8px; line-height: 1.6; }
+
+    /* Highlight banner */
+    .highlight {
+      background: linear-gradient(135deg, rgba(255,68,35,0.12), rgba(255,193,7,0.08));
+      border: 1px solid rgba(255,68,35,0.3);
+      border-radius: var(--r-lg); padding: 16px 22px; margin-bottom: 16px;
+      display: flex; align-items: center; gap: 14px;
+    }
+    .highlight .h-icon { font-size: 22px; }
+    .highlight .h-label { font-family: var(--font-mono); font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.14em; color: var(--text-mute); }
+    .highlight .h-text { font-family: var(--font-display); font-weight: 600; font-size: 16px; letter-spacing: -0.015em; color: var(--text); margin-top: 2px; }
+
+    /* Week-over-week comparison */
+    .comparison {
+      background: var(--surface-1); border: 1px solid var(--line); border-radius: var(--r-lg);
+      padding: 18px 22px; margin-bottom: 16px;
+    }
+    .cmp-title { font-family: var(--font-mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.14em; color: var(--text-mute); margin-bottom: 12px; }
+    .cmp-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+    .cmp-item { display: flex; flex-direction: column; gap: 2px; }
+    .cmp-key { font-size: 11px; color: var(--text-mute); font-family: var(--font-mono); }
+    .cmp-val { font-family: var(--font-display); font-weight: 700; font-size: 18px; }
+    .cmp-delta { font-family: var(--font-mono); font-size: 11px; }
+    .cmp-delta.up { color: var(--tertiary); }
+    .cmp-delta.down { color: var(--primary); }
+    .cmp-delta.neutral { color: var(--text-mute); }
+
+    /* Sport cards grid */
+    .sports-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-bottom: 16px; }
+
+    /* PRs */
+    .prs-card { background: var(--surface-1); border: 1px solid rgba(255,193,7,0.3); border-radius: var(--r-lg); padding: 20px 22px; margin-bottom: 16px; }
+    .pr-row { display: flex; justify-content: space-between; padding: 8px 0; border-top: 1px solid var(--line); font-size: 13px; }
+    .pr-row:first-of-type { border-top: none; padding-top: 0; }
+    .pr-name { color: var(--text-dim); }
+    .pr-value { font-family: var(--font-display); font-weight: 700; color: var(--warn); }
+
+    /* Day-by-day */
+    .daily-card { background: var(--surface-1); border: 1px solid var(--line); border-radius: var(--r-lg); padding: 20px 22px; margin-bottom: 16px; }
+    .daily-grid { display: grid; grid-template-columns: 1fr; gap: 0; }
+    .day-row { display: grid; grid-template-columns: 50px 1fr auto; gap: 12px; padding: 8px 0; border-top: 1px solid var(--line); align-items: center; }
+    .day-row:first-of-type { border-top: none; padding-top: 0; }
+    .day-row.rest { opacity: 0.4; }
+    .day-name { font-family: var(--font-mono); font-size: 11px; color: var(--text-mute); text-transform: uppercase; letter-spacing: 0.1em; }
+    .day-summary { font-size: 13px; color: var(--text); }
+    .day-duration { font-family: var(--font-mono); font-size: 11px; color: var(--text-mute); }
   </style>
 </head>
 <body>
@@ -151,40 +197,114 @@ function renderHRV(breakdown) {
     '</div>';
 }
 
+function deltaSpan(value, suffix = '', invertColor = false) {
+  if (value === null || value === undefined || value === 0) return '';
+  const positive = value > 0;
+  const better = invertColor ? !positive : positive;
+  const cls = better ? 'up' : 'down';
+  const arrow = positive ? '↑' : '↓';
+  const sign = positive ? '+' : '';
+  return `<span class="cmp-delta ${cls}">${arrow} ${sign}${value}${suffix}</span>`;
+}
+
+function fmtTime(mins) {
+  if (!mins) return '0 min';
+  const h = Math.floor(mins / 60), m = mins % 60;
+  return h ? `${h}h ${String(m).padStart(2, '0')}m` : `${m} min`;
+}
+
+function distanceCard(emoji, title, data) {
+  if (!data || data.sessions === 0) return '';
+  return `
+    <div class="report-card">
+      <div class="card-icon">${emoji}</div>
+      <div class="card-title">${title}</div>
+      <div class="big-number">${data.total_km || 0}<span class="big-unit">km</span></div>
+      <div style="font-family:var(--font-mono);font-size:11px;color:var(--text-mute);margin-bottom:16px">${data.sessions} session${data.sessions !== 1 ? 's' : ''}</div>
+      ${data.avg_pace_fmt ? `<div class="stat-row"><span class="stat-key">Avg pace</span><span class="stat-val">${data.avg_pace_fmt}</span></div>` : ''}
+      ${data.total_elevation_m ? `<div class="stat-row"><span class="stat-key">Elevation</span><span class="stat-val">${val(data.total_elevation_m, ' m')}</span></div>` : ''}
+      ${data.longest_km > 0 && data.sessions > 1 ? `<div class="stat-row"><span class="stat-key">Longest</span><span class="stat-val">${val(data.longest_km, ' km')}</span></div>` : ''}
+      <div class="stat-row"><span class="stat-key">Total time</span><span class="stat-val">${fmtTime(data.total_duration_min)}</span></div>
+    </div>
+  `;
+}
+
+function strengthCard(data) {
+  if (!data || data.sessions === 0) return '';
+  return `
+    <div class="report-card">
+      <div class="card-icon">🏋</div>
+      <div class="card-title">Strength</div>
+      <div class="big-number">${data.sessions}<span class="big-unit">session${data.sessions !== 1 ? 's' : ''}</span></div>
+      <div style="font-family:var(--font-mono);font-size:11px;color:var(--text-mute);margin-bottom:16px">strength training</div>
+      <div class="stat-row"><span class="stat-key">Total time</span><span class="stat-val">${fmtTime(data.total_duration_min)}</span></div>
+    </div>
+  `;
+}
+
+const PR_LABELS = {
+  longest_run: v => `Longest run · ${(v/1000).toFixed(1)} km`,
+  highest_elevation: v => `Highest elevation · ${Math.round(v)} m`,
+  longest_duration: v => `Longest duration · ${Math.round(v/60)} min`,
+  best_avg_pace: v => {
+    const s = Math.abs(v); const m = Math.floor(s/60), sec = Math.round(s%60);
+    return `Best pace · ${m}'${String(sec).padStart(2,'0')}"/km`;
+  },
+};
+
 function render(d) {
-  const r = d.running, g = d.gym, s = d.sleep, rec = d.recovery, t = d.totals;
+  const r = d.running, w = d.walking, c = d.cycling, sw = d.swimming, st = d.strength;
+  const s = d.sleep, rec = d.recovery, t = d.totals;
+  const cmp = d.comparison || {};
   const noGarmin = (s.nights_tracked === 0 && rec.days_tracked === 0)
     ? '<p class="no-garmin">No Garmin data this week. Sleep + HRV data appears once Garmin is connected and activities are synced.</p>'
     : '';
 
-  return `
+  // --- Highlight banner ---
+  const highlightBlock = d.highlight ? `
+    <div class="highlight">
+      <div class="h-icon">✨</div>
+      <div>
+        <div class="h-label">Highlight</div>
+        <div class="h-text">${d.highlight}</div>
+      </div>
+    </div>` : '';
+
+  // --- Comparison strip ---
+  const cmpItems = [];
+  if (cmp.total_activities_delta !== undefined) {
+    cmpItems.push(`<div class="cmp-item"><span class="cmp-key">Sessions</span><span class="cmp-val">${t.total_activities}</span>${deltaSpan(cmp.total_activities_delta)}</div>`);
+  }
+  if (cmp.active_days_delta !== undefined) {
+    cmpItems.push(`<div class="cmp-item"><span class="cmp-key">Active days</span><span class="cmp-val">${t.active_days}/7</span>${deltaSpan(cmp.active_days_delta)}</div>`);
+  }
+  if (cmp.total_calories_delta !== undefined && t.total_calories > 0) {
+    cmpItems.push(`<div class="cmp-item"><span class="cmp-key">Calories</span><span class="cmp-val">${t.total_calories.toLocaleString()}</span>${deltaSpan(cmp.total_calories_delta, ' kcal')}</div>`);
+  }
+  if (cmp.running_km_delta !== undefined && r.sessions > 0) {
+    cmpItems.push(`<div class="cmp-item"><span class="cmp-key">Running km</span><span class="cmp-val">${r.total_km}</span>${deltaSpan(cmp.running_km_delta, ' km')}</div>`);
+  }
+  const comparisonBlock = cmpItems.length > 0 ? `
+    <div class="comparison">
+      <div class="cmp-title">📊 This week vs last</div>
+      <div class="cmp-grid">${cmpItems.join('')}</div>
+    </div>` : '';
+
+  // --- Sport cards (only show sports with data) ---
+  const sportCards = [
+    distanceCard('🏃', 'Running', r),
+    distanceCard('🚶', 'Walking', w),
+    distanceCard('🚴', 'Cycling', c),
+    distanceCard('🏊', 'Swimming', sw),
+    strengthCard(st),
+  ].filter(s => s).join('');
+  const sportsBlock = sportCards
+    ? `<div class="sports-grid">${sportCards}</div>`
+    : `<div class="report-card" style="margin-bottom:16px"><p class="no-data">No activities this week.</p></div>`;
+
+  // --- Sleep + Recovery ---
+  const sleepRecBlock = `
     <div class="grid-2x2">
-
-      <!-- Running -->
-      <div class="report-card">
-        <div class="card-icon">🏃</div>
-        <div class="card-title">Running</div>
-        ${r.sessions === 0 ? '<p class="no-data">No runs this week.</p>' : `
-          <div class="big-number">${r.total_km}<span class="big-unit">km</span></div>
-          <div style="font-family:var(--font-mono);font-size:11px;color:var(--text-mute);margin-bottom:16px">${r.sessions} session${r.sessions !== 1 ? 's' : ''}</div>
-          <div class="stat-row"><span class="stat-key">Avg pace</span><span class="stat-val">${r.avg_pace_fmt || '—'}</span></div>
-          <div class="stat-row"><span class="stat-key">Elevation</span><span class="stat-val">${val(r.total_elevation_m, ' m')}</span></div>
-          <div class="stat-row"><span class="stat-key">Longest run</span><span class="stat-val">${val(r.longest_km, ' km')}</span></div>
-        `}
-      </div>
-
-      <!-- Gym -->
-      <div class="report-card">
-        <div class="card-icon">🏋</div>
-        <div class="card-title">Gym & Strength</div>
-        ${g.sessions === 0 ? '<p class="no-data">No gym sessions this week.</p>' : `
-          <div class="big-number">${g.sessions}<span class="big-unit">session${g.sessions !== 1 ? 's' : ''}</span></div>
-          <div style="font-family:var(--font-mono);font-size:11px;color:var(--text-mute);margin-bottom:16px">strength training</div>
-          <div class="stat-row"><span class="stat-key">Total time</span><span class="stat-val">${val(g.total_duration_min, ' min')}</span></div>
-        `}
-      </div>
-
-      <!-- Sleep -->
       <div class="report-card">
         <div class="card-icon">😴</div>
         <div class="card-title">Sleep Quality</div>
@@ -194,10 +314,9 @@ function render(d) {
           </div>
           <div style="font-family:var(--font-mono);font-size:11px;color:var(--text-mute);margin-bottom:16px">avg Garmin sleep score</div>
           <div class="stat-row"><span class="stat-key">Nights tracked</span><span class="stat-val">${s.nights_tracked}</span></div>
+          ${cmp.sleep_score_delta !== undefined && cmp.sleep_score_delta !== 0 ? `<div class="stat-row"><span class="stat-key">vs last week</span><span class="stat-val">${deltaSpan(cmp.sleep_score_delta)}</span></div>` : ''}
         `}
       </div>
-
-      <!-- Recovery -->
       <div class="report-card">
         <div class="card-icon">💚</div>
         <div class="card-title">Recovery & HRV</div>
@@ -210,8 +329,35 @@ function render(d) {
         `}
       </div>
     </div>
+  `;
 
-    <!-- Summary bar -->
+  // --- PRs broken this week ---
+  const prsBlock = (d.prs && d.prs.length > 0) ? `
+    <div class="prs-card">
+      <div class="card-title" style="margin-bottom:12px;color:var(--warn)">🏆 Personal Records Broken</div>
+      ${d.prs.map(pr => {
+        const fn = PR_LABELS[pr.metric] || (v => `${pr.metric}: ${v}`);
+        return `<div class="pr-row"><span class="pr-name">${fn(pr.value).split(' · ')[0]}</span><span class="pr-value">${fn(pr.value).split(' · ')[1] || pr.value}</span></div>`;
+      }).join('')}
+    </div>` : '';
+
+  // --- Day-by-day ---
+  const dailyBlock = (d.daily && d.daily.length > 0) ? `
+    <div class="daily-card">
+      <div class="card-title" style="margin-bottom:12px">📅 Day-by-day</div>
+      <div class="daily-grid">
+        ${d.daily.map(day => `
+          <div class="day-row${day.activities === 0 ? ' rest' : ''}">
+            <div class="day-name">${day.day}</div>
+            <div class="day-summary">${day.summary}</div>
+            <div class="day-duration">${day.activities > 0 ? day.total_duration_min + ' min' : ''}</div>
+          </div>
+        `).join('')}
+      </div>
+    </div>` : '';
+
+  // --- Summary bar ---
+  const summaryBlock = `
     <div class="summary-row">
       <div class="summary-cell">
         <div class="label">Active days</div>
@@ -231,6 +377,8 @@ function render(d) {
       </div>
     </div>
   `;
+
+  return highlightBlock + comparisonBlock + sportsBlock + sleepRecBlock + prsBlock + dailyBlock + summaryBlock;
 }
 
 document.getElementById('btn-prev').addEventListener('click', () => { weekOffset--; loadWeek(); });
