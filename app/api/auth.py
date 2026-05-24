@@ -14,6 +14,27 @@ import httpx
 router = APIRouter(prefix='/auth', tags=['auth'])
 
 STRAVA_AUTH_URL = 'https://www.strava.com/oauth/authorize'
+
+
+@router.get('/me')
+async def me(db: AsyncSession = Depends(get_db)):
+    user = (await db.execute(select(User))).scalars().first()
+    if not user:
+        raise HTTPException(
+            status_code=404,
+            detail='No user connected. Visit /auth/strava/login first.',
+        )
+    return {'id': str(user.id), 'username': user.username, 'profile_pic': user.profile_pic}
+
+
+@router.get('/garmin/verify')
+async def garmin_verify():
+    from app.services.garmin_client import get_client
+    try:
+        await get_client()
+        return {'status': 'connected'}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f'Garmin login failed: {e}')
 STRAVA_TOKEN_URL = 'https://www.strava.com/oauth/token'
 
 @router.get('/strava/login')
@@ -89,4 +110,4 @@ async def strava_callback(
         token.expires_at = expires_at
         token.scopes = scopes
 
-    return {'status': 'connected', 'athlete': athlete.get('firstname')}
+    return RedirectResponse(url='/report?connected=strava', status_code=302)

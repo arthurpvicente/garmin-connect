@@ -1,9 +1,12 @@
 import logging
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.services.strava_client import StravaClient
 from app.services.garmin_client import fetch_daily_metrics
 from app.services.normalizer import normalize_strava_activity, enrich_with_garmin
 from app.services.activity_service import upsert_activities
+from app.services.pr_engine import check_and_update_prs
+from app.models.activity import Activity
 
 logger = logging.getLogger(__name__)
 
@@ -32,4 +35,12 @@ class SyncService:
             enriched.append(enrich_with_garmin(activity_data, garmin_cache[day]))
 
         synced = await upsert_activities(enriched, self.db)
+
+        # Recompute PRs across all activities (idempotent — only updates if better)
+        all_acts = (await self.db.execute(
+            select(Activity).where(Activity.user_id == user_id)
+        )).scalars().all()
+        for act in all_acts:
+            await check_and_update_prs(user_id, act, self.db)
+
         return {"synced": synced}
