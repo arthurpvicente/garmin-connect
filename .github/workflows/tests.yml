@@ -1,0 +1,48 @@
+name: Tests
+
+on:
+  push:
+  pull_request:
+    branches: [main]
+
+jobs:
+  pytest:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: fitness_sync
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run pytest
+        env:
+          DATABASE_URL:         postgresql+asyncpg://postgres:postgres@localhost:5432/fitness_sync
+          STRAVA_CLIENT_ID:     dummy
+          STRAVA_CLIENT_SECRET: dummy
+          STRAVA_REDIRECT_URI:  http://localhost:8000/auth/callback
+          TOKEN_ENCRYPTION_KEY: aGVsbG93b3JsZGhlbGxvd29ybGRoZWxsb3dvcmxkMTI=
+          DEBUG:                "false"
+        run: pytest tests/ -v
