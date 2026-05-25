@@ -4,14 +4,14 @@ services:
     ports: ["8000:8000"]
     env_file: .env
     environment:
-      DATABASE_URL: postgresql+asyncpg://postgres:postgres@db:5432/fitness_sync
+      # DATABASE_URL comes from .env (Neon). Override only if you want to use
+      # the local `db` service instead — uncomment and start the db service.
+      # DATABASE_URL: postgresql+asyncpg://postgres:postgres@db:5432/fitness_sync
       REDIS_URL: redis://redis:6379/0
     volumes:
       - .:/app
       - garmin_tokens:/app/.garminconnect
     depends_on:
-      db:
-        condition: service_healthy
       redis:
         condition: service_started
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
