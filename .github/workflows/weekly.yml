@@ -1,0 +1,39 @@
+name: Weekly fitness report
+
+on:
+  schedule:
+    # 12:00 UTC = 09:00 BRT (São Paulo)
+    - cron: "0 12 * * SAT"
+  workflow_dispatch:  # also allow manual runs from the Actions tab
+
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run weekly job
+        env:
+          DATABASE_URL:           ${{ secrets.DATABASE_URL }}
+          STRAVA_CLIENT_ID:       ${{ secrets.STRAVA_CLIENT_ID }}
+          STRAVA_CLIENT_SECRET:   ${{ secrets.STRAVA_CLIENT_SECRET }}
+          STRAVA_REDIRECT_URI:    http://localhost:8000/auth/callback
+          TOKEN_ENCRYPTION_KEY:   ${{ secrets.TOKEN_ENCRYPTION_KEY }}
+          GARMIN_EMAIL:           ${{ secrets.GARMIN_EMAIL }}
+          GARMIN_PASSWORD:        ${{ secrets.GARMIN_PASSWORD }}
+          TWILIO_ACCOUNT_SID:     ${{ secrets.TWILIO_ACCOUNT_SID }}
+          TWILIO_AUTH_TOKEN:      ${{ secrets.TWILIO_AUTH_TOKEN }}
+          TWILIO_WHATSAPP_FROM:   ${{ secrets.TWILIO_WHATSAPP_FROM }}
+          TWILIO_WHATSAPP_TO:     ${{ secrets.TWILIO_WHATSAPP_TO }}
+          DEBUG:                  "false"
+        run: python -m scripts.weekly_job
