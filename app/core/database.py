@@ -1,5 +1,6 @@
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import (
     AsyncSession, async_sessionmaker, create_async_engine,
 )
@@ -35,6 +36,7 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
  
 async def create_tables():
     async with engine.begin() as conn:
+        await conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
         await conn.run_sync(Base.metadata.create_all)
  
 async def drop_tables():
