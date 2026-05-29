@@ -43,4 +43,14 @@ class SyncService:
         for act in all_acts:
             await check_and_update_prs(user_id, act, self.db)
 
+        # Embed newly synced activities so the assistant can find them.
+        # Best-effort: if OPENAI_API_KEY isn't set or the call fails, sync still succeeds.
+        try:
+            from app.services.embeddings import embed_activities
+            embedded = await embed_activities(self.db, user_id, only_missing=True)
+            if embedded:
+                logger.info("Embedded %d new activities", embedded)
+        except Exception as e:
+            logger.warning("Embedding skipped (non-fatal): %s", e)
+
         return {"synced": synced}
