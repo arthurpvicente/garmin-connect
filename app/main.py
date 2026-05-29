@@ -61,6 +61,11 @@ async def report():
     return FileResponse("app/static/report.html")
 
 
+@app.get("/chat", include_in_schema=False)
+async def chat():
+    return FileResponse("app/static/chat.html")
+
+
 @app.post("/report/whatsapp")
 async def send_whatsapp_now(
     user_id: uuid.UUID,
