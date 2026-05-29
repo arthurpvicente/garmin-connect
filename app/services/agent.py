@@ -105,7 +105,15 @@ async def run_agent(
         {"messages": [SystemMessage(content=SYSTEM_PROMPT), HumanMessage(content=question)]}
     )
 
-    answer = final_state["messages"][-1].content
+    raw = final_state["messages"][-1].content
+    if isinstance(raw, list):
+        # langchain_google_genai may return content as a list of parts
+        answer = " ".join(
+            part["text"] for part in raw
+            if isinstance(part, dict) and part.get("type") == "text"
+        )
+    else:
+        answer = raw
 
     # Collect activity IDs that came back from semantic_search tool calls
     cited: list[str] = []
