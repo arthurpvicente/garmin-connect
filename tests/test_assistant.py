@@ -2,13 +2,13 @@
 Tests for the RAG training assistant.
 
 build_activity_summary — pure unit tests, no mocking needed.
-/assistant/ask + /assistant/reindex — endpoint tests that mock the
-  OpenAI embeddings and Anthropic Claude calls so CI never hits live APIs.
+/assistant/ask + /assistant/reindex — endpoint tests that mock run_agent
+  and embed_activities so CI never hits live APIs.
 """
 import uuid
 from datetime import datetime, timezone
 from types import SimpleNamespace
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 from httpx import ASGITransport, AsyncClient
@@ -113,37 +113,26 @@ class TestBuildActivitySummary:
 
 
 # ---------------------------------------------------------------------------
-# Endpoint tests — /assistant/ask and /assistant/reindex
+# Endpoint tests — /assistant/ask
 # ---------------------------------------------------------------------------
 
 FAKE_USER_ID = str(uuid.uuid4())
 FAKE_ACTIVITY_ID = str(uuid.uuid4())
 
-FAKE_HITS = [
-    {
-        "activity_id": FAKE_ACTIVITY_ID,
-        "summary": "Thursday May 28, 2026: Morning Run (running). 5.00 km. 30 min.",
-        "distance": 0.05,
-        "name": "Morning Run",
-        "type": "Run",
-        "start_date": "2026-05-28T07:00:00+00:00",
-    }
-]
-
 
 @pytest.mark.asyncio
 async def test_ask_returns_answer_when_configured():
-    """Happy path: key set, retrieval finds hits, Gemini responds."""
+    """Happy path: key set, agent runs and returns a grounded answer."""
     with (
         patch("app.api.assistant.settings") as mock_settings,
-        patch("app.api.assistant.search_activities", new=AsyncMock(return_value=FAKE_HITS)),
         patch(
-            "app.api.assistant._generate_answer",
-            new=AsyncMock(return_value="Your pace has improved by 15 seconds/km."),
+            "app.api.assistant.run_agent",
+            new=AsyncMock(
+                return_value=("Your pace has improved by 15 seconds/km.", [FAKE_ACTIVITY_ID])
+            ),
         ),
     ):
         mock_settings.gemini_api_key = "fake-gemini-key"
-        mock_settings.assistant_model = "gemini-1.5-flash"
 
         async with AsyncClient(
             transport=ASGITransport(app=app), base_url="http://test"
@@ -165,7 +154,7 @@ async def test_ask_returns_answer_when_configured():
 async def test_ask_returns_503_when_keys_missing():
     """If GEMINI_API_KEY is not set the endpoint returns 503 with a clear message."""
     with patch("app.api.assistant.settings") as mock_settings:
-        mock_settings.gemini_api_key = ""  # explicitly empty — no real API call made
+        mock_settings.gemini_api_key = ""
         async with AsyncClient(
             transport=ASGITransport(app=app), base_url="http://test"
         ) as client:
@@ -178,24 +167,26 @@ async def test_ask_returns_503_when_keys_missing():
 
 
 @pytest.mark.asyncio
-async def test_ask_returns_graceful_message_when_no_hits():
-    """When retrieval finds nothing (no embeddings yet), the endpoint explains clearly."""
+async def test_ask_returns_answer_with_no_citations():
+    """Agent can answer stats-only questions without any cited activities."""
     with (
         patch("app.api.assistant.settings") as mock_settings,
-        patch("app.api.assistant.search_activities", new=AsyncMock(return_value=[])),
+        patch(
+            "app.api.assistant.run_agent",
+            new=AsyncMock(return_value=("You ran 25 km this week.", [])),
+        ),
     ):
         mock_settings.gemini_api_key = "fake-gemini-key"
-        mock_settings.assistant_model = "gemini-1.5-flash"
 
         async with AsyncClient(
             transport=ASGITransport(app=app), base_url="http://test"
         ) as client:
             resp = await client.post(
                 "/assistant/ask",
-                json={"question": "How is my pace?", "user_id": FAKE_USER_ID},
+                json={"question": "How much did I run this week?", "user_id": FAKE_USER_ID},
             )
 
     assert resp.status_code == 200
     body = resp.json()
-    assert "reindex" in body["answer"]
     assert body["cited_activities"] == []
+    assert "25 km" in body["answer"]
