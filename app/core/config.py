@@ -21,6 +21,11 @@ class Settings(BaseSettings):
     # Encryption key — required, no default
     token_encryption_key: str
  
+    # RAG assistant (optional — /assistant/ask requires this)
+    gemini_api_key: str = ""
+    assistant_model: str = "gemini-2.5-flash"
+    embedding_model: str = "gemini-embedding-2"
+
     # Twilio WhatsApp (optional)
     twilio_account_sid: str = ""
     twilio_auth_token: str = ""
