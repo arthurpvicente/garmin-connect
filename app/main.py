@@ -13,6 +13,7 @@ from app.api.auth import router as auth_router
 from app.api.sync import router as sync_router
 from app.api.analytics import router as analytics_router
 from app.api.activities import router as activities_router
+from app.api.assistant import router as assistant_router
 from app.tasks.scheduler import start_scheduler, stop_scheduler
  
 logging.basicConfig(
@@ -50,6 +51,7 @@ app.include_router(auth_router)
 app.include_router(sync_router)
 app.include_router(analytics_router)
 app.include_router(activities_router)
+app.include_router(assistant_router)
 
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
