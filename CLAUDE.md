@@ -117,6 +117,25 @@ Tests use `httpx.AsyncClient` with `ASGITransport` (no live server needed). `con
 
 Assistant endpoint tests (`tests/test_assistant.py`) mock `run_agent` at the endpoint level — CI never calls the real Gemini API. `build_activity_summary` is tested with `SimpleNamespace` objects instead of real SQLAlchemy model instances (SQLAlchemy instrumentation breaks `Activity.__new__`).
 
+## Commit Message Convention
+
+All commits follow the conventional commit format: `<type>: <short description>`
+
+| Prefix | When to use |
+|---|---|
+| `feat:` | A new feature for the user |
+| `fix:` | A bug fix |
+| `chore:` | Maintenance tasks that don't modify application logic (e.g. updating deps) |
+| `docs:` | Changes to documentation only |
+| `style:` | Formatting, whitespace — no logic change |
+| `refactor:` | Code improvement that neither fixes a bug nor adds a feature |
+| `test:` | Adding or correcting tests |
+| `perf:` | A change that improves performance |
+| `ci:` | Changes to CI configuration files and scripts |
+| `build:` | Changes that affect the build system or external dependencies |
+| `revert:` | Reverts a previous commit |
+| `hotfix:` | Critical bug fix that needs to go out immediately |
+
 ## MCP Server — Claude Desktop Setup
 
 Add to `~/.claude/claude_desktop_config.json` (Mac) or `%APPDATA%\Claude\claude_desktop_config.json` (Windows):
