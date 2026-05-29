@@ -81,7 +81,6 @@ Three-phase AI layer built on top of the sync service:
 - Standalone process exposing three MCP tools to Claude Desktop and other MCP clients
 - Tools reuse the same service layer as the FastAPI app — no duplicated logic
 - `get_weekly_stats`, `search_activities`, `ask_assistant`
-- `starlette` is pinned to `<0.42.0` in `requirements.txt` — MCP pulls `sse-starlette` which upgrades Starlette to 1.x and breaks FastAPI 0.115.0
 
 ### Request flow — Assistant
 
