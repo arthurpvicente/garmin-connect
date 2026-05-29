@@ -2,5 +2,6 @@ from app.models.user import User
 from app.models.token import OAuthToken
 from app.models.activity import Activity
 from app.models.personal_record import PersonalRecord
+from app.models.activity_embedding import ActivityEmbedding
 
-__all__ = ['User', 'OAuthToken', 'Activity', 'PersonalRecord']
+__all__ = ['User', 'OAuthToken', 'Activity', 'PersonalRecord', 'ActivityEmbedding']
