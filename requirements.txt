@@ -16,3 +16,6 @@ pytest-asyncio==0.24.0
 fpdf2==2.7.9
 # RAG assistant (httpx is already in requirements above; pgvector adds the Vector column type)
 pgvector==0.4.2
+# LangGraph agent (Phase 2) — routes questions between SQL stats and semantic search
+langgraph>=0.2.0
+langchain-google-genai>=2.0.0
