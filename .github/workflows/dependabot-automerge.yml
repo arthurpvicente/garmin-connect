@@ -9,7 +9,7 @@ jobs:
     runs-on: ubuntu-latest
     if: github.actor == 'dependabot[bot]'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Fetch metadata
         id: meta
         uses: dependabot/fetch-metadata@v2
