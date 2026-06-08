@@ -11,7 +11,7 @@ python-jose[cryptography]==3.5.0
 cryptography==43.0.3
 apscheduler==3.11.2
 redis[hiredis]==5.1.1
-pytest==8.3.3
+pytest==9.0.3
 pytest-asyncio==0.24.0
 fpdf2==2.8.7
 # RAG assistant (httpx is already in requirements above; pgvector adds the Vector column type)
