@@ -10,7 +10,7 @@ garminconnect==0.3.5
 python-jose[cryptography]==3.5.0
 cryptography==43.0.3
 apscheduler==3.11.2
-redis[hiredis]==5.1.1
+redis[hiredis]==8.0.0
 pytest==8.3.3
 pytest-asyncio==0.24.0
 fpdf2==2.8.7
