@@ -18,6 +18,6 @@ fpdf2==2.8.7
 pgvector==0.4.2
 # LangGraph agent (Phase 2) — routes questions between SQL stats and semantic search
 langgraph>=0.2.0
-langchain-google-genai>=2.0.0
+langchain-google-genai>=4.2.4
 # MCP server (Phase 3) — exposes tools to Claude Desktop and other MCP clients
 mcp>=1.0.0
