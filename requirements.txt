@@ -8,7 +8,7 @@ pydantic-settings==2.14.1
 httpx==0.28.1
 garminconnect==0.3.5
 python-jose[cryptography]==3.5.0
-cryptography==43.0.3
+cryptography==48.0.0
 apscheduler==3.11.2
 redis[hiredis]==5.1.1
 pytest==8.3.3
